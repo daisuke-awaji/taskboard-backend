@@ -1,0 +1,157 @@
+service:
+  name: taskboard-backend
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+    seed:
+      dev:
+        sources:
+          - table: ${self:provider.stage}_task
+            sources: [./migrations/tasks.json]
+  appSync:
+    name: appsync-serverless-sample
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      awsRegion: ap-northeast-1
+      userPoolId: ap-northeast-1_R7FtWWQ8g
+      # スキーマ定義で認証設定が記述されていない場合の挙動を指定します
+      # DENYを指定すると、認証されたいかなるユーザーも認可エラーに倒します
+      # ALLOW 認証済ユーザーであれば、すべてのユーザーを許可する
+      # DENY 認証済ユーザーであっても、すべてのユーザーを許可しない　※@aws_authを定義しないとアクセスできない
+      defaultAction: ALLOW
+    schema: schema.graphql
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: ${self:provider.stage}_task
+        description: "ユーザー情報テーブル"
+        config:
+          tableName: { Ref: Table }
+          serviceRoleArn: { Fn::GetAtt: [AppSyncDynamoDBServiceRole, Arn] }
+          region: ap-northeast-1
+    mappingTemplatesLocation: mapping-templates
+    mappingTemplates:
+      - type: Query
+        field: getTask
+        kind: PIPELINE
+        request: "start.vtl"
+        response: "end.vtl"
+        functions:
+          - GetTask # 本当は使わなくて良いけど、関数の練習として書いてみる
+      - dataSource: ${self:provider.stage}_task
+        type: Query
+        field: listTasks
+        request: "ListTasks.req.vtl"
+        response: "ListTasks.res.vtl"
+      - dataSource: ${self:provider.stage}_task
+        type: Mutation
+        field: createTask
+        request: "createTask.req.vtl"
+        response: "end.vtl"
+      - dataSource: ${self:provider.stage}_task
+        type: Mutation
+        field: updateTask
+        request: "updateTask.req.vtl"
+        response: "end.vtl"
+      - dataSource: ${self:provider.stage}_task
+        type: Mutation
+        field: deleteTask
+        request: "deleteTask.req.vtl"
+        response: "end.vtl"
+    functionConfigurations:
+      - dataSource: ${self:provider.stage}_task
+        name: "GetTask"
+        request: "GetTask.req.vtl"
+        response: "GetTask.res.vtl"
+
+# Add the serverless-webpack plugin
+plugins:
+  - serverless-webpack
+  - serverless-dynamodb-local
+  - serverless-appsync-simulator
+  - serverless-offline
+  - serverless-appsync-plugin
+
+provider:
+  name: aws
+  stage: dev
+  region: ap-northeast-1
+  profile: handson0001
+  runtime: nodejs12.x
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          method: get
+          path: hello
+
+resources:
+  Resources:
+    Table:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.stage}_task
+        AttributeDefinitions: # Hashkey, Rangekey, GSIのHashkey, Rangekeyに指定する場合はここに記述が必須
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        # GlobalSecondaryIndexes: # GSI
+        #   - IndexName: # インデックス名
+        #     KeySchema:
+        #       - AttributeName: # インデックスの属性
+        #         KeyType: # HAAH / RANGE
+        #     ProvisionedThroughput:
+        #       ReadCapacityUnits: # 読み込みスループット
+        #       WriteCapacityUnits: # 書き込みスループット
+        #     Projection:
+        #       ProjectionType: # 射影される属性 ALL / INCLUDE / KEYS_ONLY
+
+    AppSyncDynamoDBServiceRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        RoleName: "dynamo-role"
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service:
+                  - "appsync.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        Policies:
+          - PolicyName: "dynamo-policy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "dynamodb:Query"
+                    - "dynamodb:BatchWriteItem"
+                    - "dynamodb:GetItem"
+                    - "dynamodb:DeleteItem"
+                    - "dynamodb:PutItem"
+                    - "dynamodb:Scan"
+                    - "dynamodb:UpdateItem"
+                  Resource:
+                    - "*"
