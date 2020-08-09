@@ -1,6 +1,7 @@
 type Task {
   id: ID!
   name: String!
+  status: String!
 }
 
 type Query {
@@ -34,11 +35,13 @@ type Mutation {
 input CreateTaskInput {
   id: ID
   name: String!
+  status: String!
 }
 
 input UpdateTaskInput {
   id: ID!
   name: String
+  status: String
 }
 
 input DeleteTaskInput {
