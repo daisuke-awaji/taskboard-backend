@@ -1,3 +1,7 @@
+type Version {
+  version: String!
+}
+
 type Task {
   id: ID!
   name: String!
@@ -5,7 +9,8 @@ type Task {
 }
 
 type Query {
-  getTask(id: ID!): Task
+  version: Version
+  getTask(id: ID!, status: String!): Task
   listTasks(
     filter: ModelTaskFilterInput
     limit: Int
@@ -46,6 +51,7 @@ input UpdateTaskInput {
 
 input DeleteTaskInput {
   id: ID!
+  status: String!
 }
 
 input ModelTaskConditionInput {

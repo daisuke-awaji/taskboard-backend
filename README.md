@@ -17,3 +17,9 @@ $ yarn install
 ```
 $ sls offline start
 ```
+
+### issue
+
+```
+$ pgrep -f "DynamoDBLocal.jar" | xargs kill
+```
