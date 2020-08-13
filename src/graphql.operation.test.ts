@@ -2,7 +2,7 @@ import { GraphQLClient, gql } from "graphql-request";
 import { getTask } from "./query";
 import { createTask, deleteTask } from "./mutation";
 
-const client = new GraphQLClient("http://192.168.3.10:20002/graphql", {
+const client = new GraphQLClient("http://localhost:20002/graphql", {
   headers: {
     // format さえ合っていればなんでもいいらしい
     Authorization:
