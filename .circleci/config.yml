@@ -10,7 +10,7 @@ jobs:
           command: yarn install
   test:
     docker:
-      - image: circleci/node:12
+      - image: timbru31/java-node
     steps:
       - checkout
       - run:
