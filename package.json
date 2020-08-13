@@ -5,7 +5,7 @@
   "main": "handler.js",
   "scripts": {
     "sls:setup": "sls dynamodb install",
-    "start": "sls offline start --stage dev",
+    "start": "sls offline start",
     "test": "jest",
     "test:watch": "jest --watch",
     "start-server": "yarn start",
