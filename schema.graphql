@@ -1,4 +1,5 @@
-type Version {
+type AppInfo {
+  name: String!
   version: String!
 }
 
@@ -9,7 +10,7 @@ type Task {
 }
 
 type Query {
-  version: Version
+  appInfo: AppInfo
   getTask(id: ID!, status: String!): Task
   listTasks(
     filter: ModelTaskFilterInput

@@ -1,13 +1,36 @@
 service:
   name: taskboard-backend
 
+provider:
+  name: aws
+  region: ap-northeast-1
+  profile: handson0001
+  runtime: nodejs12.x
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+
 custom:
+  stages:
+    dev:
+      userPoolId: ap-northeast-1_R7FtWWQ8g
+    stg:
+      userPoolId: ap-northeast-1_R7FtWWQ8g
+    prod:
+      userPoolId: ap-northeast-1_XXXXXXXXX
+
+  appsync-simulator:
+    location: ".webpack/service"
+
   webpack:
     webpackConfig: ./webpack.config.js
     includeModules: true
   dynamodb:
     stages:
       - dev
+      - stg
+      - prod
     start:
       port: 8000
       inMemory: true
@@ -16,23 +39,19 @@ custom:
     seed:
       dev:
         sources:
-          - table: ${self:provider.stage}_task
+          - table: ${opt:stage}_task
             sources: [./migrations/tasks.json]
   appSync:
-    name: appsync-serverless-sample
+    name: ${opt:stage}_taskboard_backend
     authenticationType: AMAZON_COGNITO_USER_POOLS
     userPoolConfig:
       awsRegion: ap-northeast-1
-      userPoolId: ap-northeast-1_R7FtWWQ8g
-      # スキーマ定義で認証設定が記述されていない場合の挙動を指定します
-      # DENYを指定すると、認証されたいかなるユーザーも認可エラーに倒します
-      # ALLOW 認証済ユーザーであれば、すべてのユーザーを許可する
-      # DENY 認証済ユーザーであっても、すべてのユーザーを許可しない　※@aws_authを定義しないとアクセスできない
+      userPoolId: ${self:custom.stages.${opt:stage}.userPoolId}
       defaultAction: ALLOW
     schema: schema.graphql
     dataSources:
       - type: AMAZON_DYNAMODB
-        name: ${self:provider.stage}_task
+        name: ${opt:stage}_task
         description: "タスク管理テーブル"
         config:
           tableName: { Ref: Table }
@@ -40,10 +59,10 @@ custom:
           region: ap-northeast-1
       # serverless-appsync-simulator では ローカルの Lambda 実行をサポートしていない？
       - type: AWS_LAMBDA
-        name: version
-        description: "Lambda DataSource for Version"
+        name: ${opt:stage}_appInfo
+        description: "Lambda DataSource for appInfo"
         config:
-          functionName: version # The function name in your serverless.yml. Ignored if lambdaFunctionArn is provided.
+          functionName: appInfo # The function name in your serverless.yml. Ignored if lambdaFunctionArn is provided.
           iamRoleStatements: # custom IAM Role statements for this DataSource. Ignored if `serviceRoleArn` is present. Auto-generated if both `serviceRoleArn` and `iamRoleStatements` are omitted
             - Effect: "Allow"
               Action:
@@ -52,11 +71,11 @@ custom:
                 - "*"
     mappingTemplatesLocation: mapping-templates
     mappingTemplates:
-      - dataSource: version
+      - dataSource: ${opt:stage}_appInfo
         type: Query
-        field: version
-        request: version.req.vtl
-        response: version.res.vtl
+        field: appInfo
+        request: appInfo.req.vtl
+        response: appInfo.res.vtl
       - type: Query
         field: getTask
         kind: PIPELINE
@@ -64,28 +83,28 @@ custom:
         response: "end.vtl"
         functions:
           - getTask # 本当は使わなくて良いけど、関数の練習として書いてみる
-      - dataSource: ${self:provider.stage}_task
+      - dataSource: ${opt:stage}_task
         type: Query
         field: listTasks
         request: "listTasks.req.vtl"
         response: "listTasks.res.vtl"
-      - dataSource: ${self:provider.stage}_task
+      - dataSource: ${opt:stage}_task
         type: Mutation
         field: createTask
         request: "createTask.req.vtl"
         response: "end.vtl"
-      - dataSource: ${self:provider.stage}_task
+      - dataSource: ${opt:stage}_task
         type: Mutation
         field: updateTask
         request: "updateTask.req.vtl"
         response: "end.vtl"
-      - dataSource: ${self:provider.stage}_task
+      - dataSource: ${opt:stage}_task
         type: Mutation
         field: deleteTask
         request: "deleteTask.req.vtl"
         response: "end.vtl"
     functionConfigurations:
-      - dataSource: ${self:provider.stage}_task
+      - dataSource: ${opt:stage}_task
         name: "getTask"
         request: "getTask.req.vtl"
         response: "getTask.res.vtl"
@@ -97,34 +116,19 @@ plugins:
   - serverless-appsync-simulator # must go before serverless-offline
   - serverless-offline
 
-provider:
-  name: aws
-  stage: dev
-  region: ap-northeast-1
-  profile: handson0001
-  runtime: nodejs12.x
-  apiGateway:
-    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
-  environment:
-    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
-
-# ref.: https://serverless.com/framework/docs/providers/aws/guide/packaging/#packaging-functions-separately
-# package:
-#   individually: true
-
 functions:
-  version:
-    handler: src/functions/handler.version
-    name: version
+  appInfo:
+    handler: src/functions/handler.appInfo
+    name: ${opt:stage}_appInfo
     events:
-      - http: GET version
+      - http: GET appInfo
 
 resources:
   Resources:
     Table:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.stage}_task
+        TableName: ${opt:stage}_task
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -142,7 +146,7 @@ resources:
     AppSyncDynamoDBServiceRole:
       Type: "AWS::IAM::Role"
       Properties:
-        RoleName: "dynamo-role"
+        RoleName: ${opt:stage}-appsync-dynamodb-role
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -168,3 +172,46 @@ resources:
                     - "dynamodb:UpdateItem"
                   Resource:
                     - "*"
+    # CognitoUserPool:
+    #   Type: AWS::Cognito::UserPool
+    #   Properties:
+    #     AutoVerifiedAttributes:
+    #       - email
+    #     SmsConfiguration:
+    #       ExternalId: ${opt:stage}-CognitoUserPool-external
+    #       SnsCallerArn: !GetAtt CognitoUserPoolSNSRole.Arn
+    #     MfaConfiguration: "OFF"
+    #     UserPoolName: ${opt:stage}-CognitoUserPool
+    #     UsernameAttributes:
+    #       - email
+    # CognitoUserPoolClient:
+    #   Type: AWS::Cognito::UserPoolClient
+    #   Properties:
+    #     ClientName: ${opt:stage}-CognitoUserPoolClient
+    #     ExplicitAuthFlows:
+    #       - ALLOW_ADMIN_USER_PASSWORD_AUTH
+    #       - ALLOW_REFRESH_TOKEN_AUTH
+    #       - ALLOW_USER_SRP_AUTH # これが必要
+    #     GenerateSecret: false
+    #     UserPoolId:
+    #       Ref: CognitoUserPool
+    # CognitoUserPoolSNSRole:
+    #   Type: "AWS::IAM::Role"
+    #   Properties:
+    #     RoleName: ${opt:stage}-cognito-user-pool-sns-role
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             Service: cognito-idp.amazonaws.com
+    #           Action: sts:AssumeRole
+    #     Policies:
+    #       - PolicyName: "dynamo-policy"
+    #         PolicyDocument:
+    #           Version: "2012-10-17"
+    #           Statement:
+    #             - Action:
+    #                 - sns:Publish
+    #               Resource: "*"
+    #               Effect: Allow

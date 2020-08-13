@@ -1,44 +1,51 @@
-import * as mappingTemplate from "api-gateway-mapping-template";
+// import * as mappingTemplate from "api-gateway-mapping-template";
 import * as fs from "fs";
 import * as path from "path";
 import { Compile, parse } from "amplify-velocity-template";
 import { map } from "amplify-appsync-simulator/lib/velocity/value-mapper/mapper";
 import * as utils from "amplify-appsync-simulator/lib/velocity/util";
 
+/**
+ * VTLファイル内で展開される context を作成する
+ */
+const createVtlContext = <T>(args: T) => {
+  const util = utils.create([], new Date(Date.now()), Object());
+  const context = {
+    args,
+    arguments: args,
+  };
+  return {
+    util,
+    utils: util,
+    ctx: context,
+    context,
+  };
+};
+
+/**
+ * 指定パスのファイルを参照し、入力パラメータをもとに、vtlファイルによりマッピングされたリゾルバリクエストJSONをロードする
+ */
+const vtlLoader = (filePath: string, args: any) => {
+  const vtlPath = path.resolve(__dirname, filePath);
+  const vtl = parse(fs.readFileSync(vtlPath, { encoding: "utf8" }));
+  const compiler = new Compile(vtl, { valueMapper: map, escape: false });
+  const context = createVtlContext(args);
+  console.log(context);
+  const result = JSON.parse(compiler.render(context));
+  return result;
+};
+
 describe("mapping-templates", () => {
-  function createVtlContext<T>(args: T) {
-    const util = utils.create([], new Date(Date.now()), Object());
-    const context = {
-      args,
-      arguments: args,
-    };
-    return {
-      util,
-      utils: util,
-      ctx: context,
-      context,
-    };
-  }
+  // test("for study", () => {
+  //   const vtl = "$input.json('$.data')";
+  //   const payload =
+  //     '{"data": {"url": "https://github.com/ToQoz/api-gateway-mapping-template"}}';
 
-  function vtlLoader(filePath: string, args: any) {
-    const vtlPath = path.resolve(__dirname, filePath);
-    const vtl = parse(fs.readFileSync(vtlPath, { encoding: "utf8" }));
-    const compiler = new Compile(vtl, { valueMapper: map, escape: false });
-    const context = createVtlContext(args);
-    const result = JSON.parse(compiler.render(context));
-    return result;
-  }
-
-  test("for study", () => {
-    const vtl = "$input.json('$.data')";
-    const payload =
-      '{"data": {"url": "https://github.com/ToQoz/api-gateway-mapping-template"}}';
-
-    const result = mappingTemplate({ template: vtl, payload: payload });
-    expect(JSON.parse(result)).toStrictEqual({
-      url: "https://github.com/ToQoz/api-gateway-mapping-template",
-    });
-  });
+  //   const result = mappingTemplate({ template: vtl, payload: payload });
+  //   expect(JSON.parse(result)).toStrictEqual({
+  //     url: "https://github.com/ToQoz/api-gateway-mapping-template",
+  //   });
+  // });
 
   test("getTask.req.vtl", () => {
     const args = {
@@ -56,7 +63,7 @@ describe("mapping-templates", () => {
     });
   });
 
-  test("createTask.req.vtl", () => {
+  test("createTask.req.vtl / expect attributeValues: createdAt, updateAt etc...", () => {
     const args = {
       input: {
         id: "001",
@@ -100,4 +107,50 @@ describe("mapping-templates", () => {
       },
     });
   });
+
+  // test("createTask.req.vtl / condition", () => {
+  //   const args = {
+  //     input: {
+  //       id: "001",
+  //       name: "study",
+  //       status: "InProgress",
+  //     },
+  //     condition,
+  //   };
+  //   const result = vtlLoader("../mapping-templates/createTask.req.vtl", args);
+  //   expect(result).toEqual({
+  //     version: "2017-02-28",
+  //     operation: "PutItem",
+  //     key: {
+  //       id: { S: "001" },
+  //       status: { S: "InProgress" },
+  //     },
+  //     attributeValues: {
+  //       __typename: {
+  //         S: "Task",
+  //       },
+  //       createdAt: {
+  //         S: expect.anything(),
+  //       },
+  //       id: {
+  //         S: "001",
+  //       },
+  //       name: {
+  //         S: "study",
+  //       },
+  //       status: {
+  //         S: "InProgress",
+  //       },
+  //       updatedAt: {
+  //         S: expect.anything(),
+  //       },
+  //     },
+  //     condition: {
+  //       expression: "attribute_not_exists(#id)",
+  //       expressionNames: {
+  //         "#id": "id",
+  //       },
+  //     },
+  //   });
+  // });
 });
