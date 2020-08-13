@@ -4,7 +4,7 @@
   "description": "Serverless webpack example using Typescript",
   "main": "handler.js",
   "scripts": {
-    "sls:setup": "sls dynamodb intall",
+    "sls:setup": "sls dynamodb install",
     "start": "sls offline start --stage dev",
     "test": "jest",
     "test:watch": "jest --watch",
