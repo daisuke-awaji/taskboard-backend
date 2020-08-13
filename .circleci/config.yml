@@ -17,6 +17,9 @@ jobs:
           name: install dependencies
           command: yarn install
       - run:
+          name: setup for serverless
+          command: yarn sls:setup
+      - run:
           name: unit test
           command: yarn ci
 workflows:
