@@ -1,4 +1,8 @@
 version: 2.1
+orbs:
+  serverless-framework: circleci/serverless-framework@1.0.1
+  aws-cli: circleci/aws-cli@1.0
+
 jobs:
   build:
     docker:
@@ -9,12 +13,9 @@ jobs:
           name: install dependencies
           command: yarn install
   test:
-    docker:
-      - image: circleci/openjdk
+    executor: serverless/default
     steps:
       - checkout
-      - run:
-          name:
       - run:
           name: install dependencies
           command: yarn install
