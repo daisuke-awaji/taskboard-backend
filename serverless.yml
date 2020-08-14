@@ -75,8 +75,8 @@ custom:
       - dataSource: ${opt:stage, self:provider.stage}_appInfo
         type: Query
         field: appInfo
-        request: appInfo.req.vtl
-        response: appInfo.res.vtl
+        request: Query.appInfo.request.vtl
+        response: Query.appInfo.response.vtl
       - type: Query
         field: getTask
         kind: PIPELINE
@@ -87,28 +87,28 @@ custom:
       - dataSource: ${opt:stage, self:provider.stage}_task
         type: Query
         field: listTasks
-        request: "listTasks.req.vtl"
-        response: "listTasks.res.vtl"
+        request: "Query.istTasks.request.vtl"
+        response: "Query.listTasks.response.vtl"
       - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
         field: createTask
-        request: "createTask.req.vtl"
+        request: "Mutation.createTask.request.vtl"
         response: "end.vtl"
       - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
         field: updateTask
-        request: "updateTask.req.vtl"
+        request: "Mutation.updateTask.request.vtl"
         response: "end.vtl"
       - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
         field: deleteTask
-        request: "deleteTask.req.vtl"
+        request: "Mutation.deleteTask.request.vtl"
         response: "end.vtl"
     functionConfigurations:
       - dataSource: ${opt:stage, self:provider.stage}_task
-        name: "getTask"
-        request: "getTask.req.vtl"
-        response: "getTask.res.vtl"
+        name: "getTaskFn1"
+        request: "getTaskFn1.request.vtl"
+        response: "getTaskFn1.response.vtl"
 
 plugins:
   - serverless-webpack
