@@ -87,7 +87,7 @@ custom:
       - dataSource: ${opt:stage, self:provider.stage}_task
         type: Query
         field: listTasks
-        request: "Query.istTasks.request.vtl"
+        request: "Query.listTasks.request.vtl"
         response: "Query.listTasks.response.vtl"
       - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
