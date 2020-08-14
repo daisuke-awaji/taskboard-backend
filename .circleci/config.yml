@@ -9,11 +9,12 @@ jobs:
           name: install dependencies
           command: yarn install
   test:
-    working_directory: ~/myproject
     docker:
-      - image: timbru31/java-node
+      - image: circleci/openjdk
     steps:
       - checkout
+      - run:
+          name:
       - run:
           name: install dependencies
           command: yarn install
