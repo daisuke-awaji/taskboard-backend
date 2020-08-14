@@ -16,6 +16,12 @@ jobs:
   test:
     executor: serverless/default
     steps:
+      - run:
+          name: apt update
+          command: sudo apt update
+      - run:
+          name: apt install java
+          command: sudo apt-get install openjdk-8-jdk
       - checkout
       - run:
           name: install dependencies
