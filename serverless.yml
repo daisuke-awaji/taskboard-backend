@@ -4,6 +4,7 @@ service:
 provider:
   name: aws
   region: ap-northeast-1
+  stage: dev
   profile: handson0001
   runtime: nodejs12.x
   apiGateway:
@@ -39,19 +40,19 @@ custom:
     seed:
       dev:
         sources:
-          - table: ${opt:stage}_task
+          - table: ${opt:stage, self:provider.stage}_task
             sources: [./migrations/tasks.json]
   appSync:
-    name: ${opt:stage}_taskboard_backend
+    name: ${opt:stage, self:provider.stage}_taskboard_backend
     authenticationType: AMAZON_COGNITO_USER_POOLS
     userPoolConfig:
       awsRegion: ap-northeast-1
-      userPoolId: ${self:custom.stages.${opt:stage}.userPoolId}
+      userPoolId: ${self:custom.stages.${opt:stage, self:provider.stage}.userPoolId}
       defaultAction: ALLOW
     schema: schema.graphql
     dataSources:
       - type: AMAZON_DYNAMODB
-        name: ${opt:stage}_task
+        name: ${opt:stage, self:provider.stage}_task
         description: "タスク管理テーブル"
         config:
           tableName: { Ref: Table }
@@ -59,7 +60,7 @@ custom:
           region: ap-northeast-1
       # serverless-appsync-simulator では ローカルの Lambda 実行をサポートしていない？
       - type: AWS_LAMBDA
-        name: ${opt:stage}_appInfo
+        name: ${opt:stage, self:provider.stage}_appInfo
         description: "Lambda DataSource for appInfo"
         config:
           functionName: appInfo # The function name in your serverless.yml. Ignored if lambdaFunctionArn is provided.
@@ -71,11 +72,11 @@ custom:
                 - "*"
     mappingTemplatesLocation: mapping-templates
     mappingTemplates:
-      - dataSource: ${opt:stage}_appInfo
+      - dataSource: ${opt:stage, self:provider.stage}_appInfo
         type: Query
         field: appInfo
-        request: appInfo.req.vtl
-        response: appInfo.res.vtl
+        request: Query.appInfo.request.vtl
+        response: Query.appInfo.response.vtl
       - type: Query
         field: getTask
         kind: PIPELINE
@@ -83,31 +84,31 @@ custom:
         response: "end.vtl"
         functions:
           - getTask # 本当は使わなくて良いけど、関数の練習として書いてみる
-      - dataSource: ${opt:stage}_task
+      - dataSource: ${opt:stage, self:provider.stage}_task
         type: Query
         field: listTasks
-        request: "listTasks.req.vtl"
-        response: "listTasks.res.vtl"
-      - dataSource: ${opt:stage}_task
+        request: "Query.listTasks.request.vtl"
+        response: "Query.listTasks.response.vtl"
+      - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
         field: createTask
-        request: "createTask.req.vtl"
+        request: "Mutation.createTask.request.vtl"
         response: "end.vtl"
-      - dataSource: ${opt:stage}_task
+      - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
         field: updateTask
-        request: "updateTask.req.vtl"
+        request: "Mutation.updateTask.request.vtl"
         response: "end.vtl"
-      - dataSource: ${opt:stage}_task
+      - dataSource: ${opt:stage, self:provider.stage}_task
         type: Mutation
         field: deleteTask
-        request: "deleteTask.req.vtl"
+        request: "Mutation.deleteTask.request.vtl"
         response: "end.vtl"
     functionConfigurations:
-      - dataSource: ${opt:stage}_task
+      - dataSource: ${opt:stage, self:provider.stage}_task
         name: "getTask"
-        request: "getTask.req.vtl"
-        response: "getTask.res.vtl"
+        request: "getTask.request.vtl"
+        response: "getTask.response.vtl"
 
 plugins:
   - serverless-webpack
@@ -119,7 +120,7 @@ plugins:
 functions:
   appInfo:
     handler: src/functions/handler.appInfo
-    name: ${opt:stage}_appInfo
+    name: ${opt:stage, self:provider.stage}_appInfo
     events:
       - http: GET appInfo
 
@@ -128,7 +129,7 @@ resources:
     Table:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${opt:stage}_task
+        TableName: ${opt:stage, self:provider.stage}_task
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -146,7 +147,7 @@ resources:
     AppSyncDynamoDBServiceRole:
       Type: "AWS::IAM::Role"
       Properties:
-        RoleName: ${opt:stage}-appsync-dynamodb-role
+        RoleName: ${opt:stage, self:provider.stage}-appsync-dynamodb-role
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -178,16 +179,16 @@ resources:
     #     AutoVerifiedAttributes:
     #       - email
     #     SmsConfiguration:
-    #       ExternalId: ${opt:stage}-CognitoUserPool-external
+    #       ExternalId: ${opt:stage, self:provider.stage}-CognitoUserPool-external
     #       SnsCallerArn: !GetAtt CognitoUserPoolSNSRole.Arn
     #     MfaConfiguration: "OFF"
-    #     UserPoolName: ${opt:stage}-CognitoUserPool
+    #     UserPoolName: ${opt:stage, self:provider.stage}-CognitoUserPool
     #     UsernameAttributes:
     #       - email
     # CognitoUserPoolClient:
     #   Type: AWS::Cognito::UserPoolClient
     #   Properties:
-    #     ClientName: ${opt:stage}-CognitoUserPoolClient
+    #     ClientName: ${opt:stage, self:provider.stage}-CognitoUserPoolClient
     #     ExplicitAuthFlows:
     #       - ALLOW_ADMIN_USER_PASSWORD_AUTH
     #       - ALLOW_REFRESH_TOKEN_AUTH
@@ -198,7 +199,7 @@ resources:
     # CognitoUserPoolSNSRole:
     #   Type: "AWS::IAM::Role"
     #   Properties:
-    #     RoleName: ${opt:stage}-cognito-user-pool-sns-role
+    #     RoleName: ${opt:stage, self:provider.stage}-cognito-user-pool-sns-role
     #     AssumeRolePolicyDocument:
     #       Version: "2012-10-17"
     #       Statement:
