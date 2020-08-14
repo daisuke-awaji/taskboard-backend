@@ -51,7 +51,10 @@ describe("mapping-templates", () => {
       id: "000",
       status: "InProgress",
     };
-    const result = vtlLoader("../mapping-templates/GetTask.req.vtl", args);
+    const result = vtlLoader(
+      "../mapping-templates/Query.GetTask.request.vtl",
+      args
+    );
     expect(result).toStrictEqual({
       version: "2018-05-29",
       operation: "GetItem",
@@ -70,7 +73,10 @@ describe("mapping-templates", () => {
         status: "InProgress",
       },
     };
-    const result = vtlLoader("../mapping-templates/createTask.req.vtl", args);
+    const result = vtlLoader(
+      "../mapping-templates/Mutation.createTask.request.vtl",
+      args
+    );
     expect(result).toEqual({
       version: "2017-02-28",
       operation: "PutItem",
