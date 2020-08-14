@@ -16,13 +16,19 @@ jobs:
   test:
     executor: serverless/default
     steps:
+      - checkout
+      - run:
+          name: ls
+          command: ls -la
+      - run:
+          name: ls
+          command: ls -la mapping-templates/
       - run:
           name: apt update
           command: sudo apt update
       - run:
           name: apt install java
-          command: sudo apt-get install openjdk-8-jdk
-      - checkout
+          command: sudo apt install openjdk-8-jdk
       - run:
           name: install dependencies
           command: yarn install
