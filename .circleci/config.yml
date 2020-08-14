@@ -9,6 +9,7 @@ jobs:
           name: install dependencies
           command: yarn install
   test:
+    working_directory: ~/myproject
     docker:
       - image: timbru31/java-node
     steps:

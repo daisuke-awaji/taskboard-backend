@@ -30,7 +30,6 @@ const vtlLoader = (filePath: string, args: any) => {
   const vtl = parse(fs.readFileSync(vtlPath, { encoding: "utf8" }));
   const compiler = new Compile(vtl, { valueMapper: map, escape: false });
   const context = createVtlContext(args);
-  console.log(context);
   const result = JSON.parse(compiler.render(context));
   return result;
 };
