@@ -51,10 +51,7 @@ describe("mapping-templates", () => {
       id: "000",
       status: "InProgress",
     };
-    const result = vtlLoader(
-      "../mapping-templates/Query.GetTask.request.vtl",
-      args
-    );
+    const result = vtlLoader("../mapping-templates/getTask.request.vtl", args);
     expect(result).toStrictEqual({
       version: "2018-05-29",
       operation: "GetItem",

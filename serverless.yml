@@ -106,9 +106,9 @@ custom:
         response: "end.vtl"
     functionConfigurations:
       - dataSource: ${opt:stage, self:provider.stage}_task
-        name: "getTaskFn1"
-        request: "getTaskFn1.request.vtl"
-        response: "getTaskFn1.response.vtl"
+        name: "getTask"
+        request: "getTask.request.vtl"
+        response: "getTask.response.vtl"
 
 plugins:
   - serverless-webpack
